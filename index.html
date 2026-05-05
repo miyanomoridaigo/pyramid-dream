@@ -37,7 +37,7 @@
     display: flex; align-items: center; gap: 10px;
   }
   header h1 .icon { font-size: 22px; }
-  header .right { display: flex; gap: 8px; }
+  header .right { display: flex; gap: 8px; align-items: center; }
   button, .btn {
     background: var(--card); color: var(--fg);
     border: 1px solid var(--line); border-radius: 10px;
@@ -82,46 +82,76 @@
     color: var(--muted); text-align: center; padding: 60px 12px;
     font-size: 14px; line-height: 1.7;
   }
-  .layer {
+  .pyramid-row {
+    display: flex; gap: 4px;
     width: 100%;
+    margin: 3px 0;
+    align-items: stretch;
+    position: relative;
+  }
+  .pyramid-row .level-tag {
+    position: absolute;
+    left: 0; transform: translateX(calc(-100% - 8px));
+    top: 50%; margin-top: -10px;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 0.05em;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  @media (max-width: 880px) {
+    .pyramid-row .level-tag { display: none; }
+  }
+  .brick {
+    flex: 1 1 0;
+    min-width: 0;
     height: 56px;
-    margin-top: -1px;
+    border-radius: 8px;
     cursor: pointer;
     position: relative;
     display: flex; align-items: center; justify-content: center;
-    transition: filter 0.2s ease, transform 0.15s ease;
-  }
-  .layer:hover { filter: brightness(1.1); transform: translateY(-1px); }
-  .layer .face {
-    position: absolute; inset: 0;
-    clip-path: polygon(var(--lp) 0, var(--rp) 0, 100% 100%, 0 100%);
     background: linear-gradient(180deg, var(--c1), var(--c2));
-    border-top: 1px solid rgba(255,255,255,0.15);
-    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.15);
+    border-top: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.25), inset 0 -2px 0 rgba(0,0,0,0.15);
+    transition: filter 0.2s ease, transform 0.15s ease;
+    overflow: hidden;
   }
-  .layer .label {
-    position: relative; z-index: 1;
-    font-weight: 600; font-size: 14px; color: #1a1d3a;
+  .brick:hover { filter: brightness(1.12); transform: translateY(-1px); }
+  .brick .label {
+    font-weight: 600; font-size: 13px; color: #1a1d3a;
     text-shadow: 0 1px 0 rgba(255,255,255,0.4);
-    padding: 0 12px; max-width: 70%;
+    padding: 0 10px; max-width: 90%;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .layer.unachieved .label { color: var(--fg); text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
-  .layer.unachieved .face {
-    background: repeating-linear-gradient(
-      45deg, rgba(255,255,255,0.06) 0 8px, rgba(255,255,255,0.12) 8px 16px
-    ), linear-gradient(180deg, var(--c1), var(--c2));
+  .brick .check {
+    position: absolute; right: 8px; top: 6px;
+    font-size: 12px;
     opacity: 0.85;
   }
-  .layer .check {
-    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-    z-index: 1; font-size: 16px;
+  .brick.unachieved {
+    background:
+      repeating-linear-gradient(
+        45deg, rgba(255,255,255,0.06) 0 8px, rgba(255,255,255,0.14) 8px 16px
+      ),
+      linear-gradient(180deg, var(--c1), var(--c2));
+    opacity: 0.85;
+  }
+  .brick.unachieved .label {
+    color: var(--fg);
+    text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+  }
+  .row-placeholder {
+    flex: 1; height: 36px;
+    border: 1px dashed rgba(255,255,255,0.18);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 11px;
+    font-style: italic;
   }
   .pyramid-tip {
     width: 0; height: 0;
-    border-left: 20px solid transparent;
-    border-right: 20px solid transparent;
-    border-bottom: 28px solid var(--accent);
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-bottom: 26px solid var(--accent);
     margin-bottom: -1px;
     filter: drop-shadow(0 -2px 8px rgba(255,209,102,0.5));
   }
@@ -129,7 +159,7 @@
   /* Dream form */
   form .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
   label { font-size: 12px; color: var(--muted); }
-  input[type="text"], input[type="date"], textarea, select, input[type="password"] {
+  input[type="text"], input[type="date"], input[type="number"], textarea, select, input[type="password"] {
     background: rgba(0,0,0,0.25); color: var(--fg);
     border: 1px solid var(--line); border-radius: 8px;
     padding: 9px 10px; font-size: 14px;
@@ -141,7 +171,7 @@
   .row > * { flex: 1; }
 
   /* Dream list */
-  .dream-list { display: flex; flex-direction: column; gap: 8px; }
+  .dream-list { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; }
   .dream-item {
     background: rgba(0,0,0,0.2); border: 1px solid var(--line);
     border-radius: 10px; padding: 10px 12px;
@@ -160,6 +190,10 @@
     background: var(--good); color: #073a2a; font-weight: 700; margin-left: 6px;
   }
   .badge.pending { background: rgba(255,255,255,0.15); color: var(--muted); }
+  .badge.level {
+    background: rgba(255,209,102,0.22); color: var(--accent);
+    margin-left: 6px;
+  }
 
   /* Modal */
   .modal-bg {
@@ -204,6 +238,10 @@
     cursor: pointer; color: var(--muted); font-size: 12px;
     margin-bottom: 8px;
   }
+
+  .hint {
+    font-size: 11px; color: var(--muted); margin-top: -4px; line-height: 1.4;
+  }
 </style>
 </head>
 <body>
@@ -211,7 +249,7 @@
 <header>
   <h1><span class="icon">🔺</span> Pyramid Dream</h1>
   <div class="right">
-    <span id="connection-status" style="font-size:12px;color:var(--muted);align-self:center;margin-right:8px;">未接続（ローカル保存）</span>
+    <span id="connection-status" style="font-size:12px;color:var(--muted);margin-right:8px;">未接続（ローカル保存）</span>
     <button id="open-settings">⚙ 設定</button>
   </div>
 </header>
@@ -226,7 +264,7 @@
       </div>
     </div>
     <p style="color:var(--muted);font-size:12px;text-align:center;margin:12px 0 0;">
-      実現した夢ほど下に積まれ、次の夢の土台になります。レイヤーをクリックすると編集できます。
+      <strong>階層 0</strong> が土台。同じ階層の夢は横並びで一段を成し、複数の土台がその上の階層を支えます。
     </p>
   </section>
 
@@ -243,16 +281,21 @@
       </div>
       <div class="row">
         <div class="field">
+          <label for="dream-level">階層</label>
+          <input type="number" id="dream-level" min="0" max="99" step="1" value="0">
+          <div class="hint">0=土台。上に行くほど大きい数字。</div>
+        </div>
+        <div class="field">
           <label for="dream-achieved">状態</label>
           <select id="dream-achieved">
             <option value="false">未実現</option>
             <option value="true">実現済み</option>
           </select>
         </div>
-        <div class="field">
-          <label for="dream-date">実現した日（任意）</label>
-          <input type="date" id="dream-date">
-        </div>
+      </div>
+      <div class="field">
+        <label for="dream-date">実現した日（任意）</label>
+        <input type="date" id="dream-date">
       </div>
       <button type="submit" class="primary" style="width:100%;">追加する</button>
     </form>
@@ -340,16 +383,20 @@
       </div>
       <div class="row">
         <div class="field">
+          <label>階層</label>
+          <input type="number" id="edit-level" min="0" max="99" step="1">
+        </div>
+        <div class="field">
           <label>状態</label>
           <select id="edit-achieved">
             <option value="false">未実現</option>
             <option value="true">実現済み</option>
           </select>
         </div>
-        <div class="field">
-          <label>実現した日</label>
-          <input type="date" id="edit-date">
-        </div>
+      </div>
+      <div class="field">
+        <label>実現した日</label>
+        <input type="date" id="edit-date">
       </div>
       <div class="actions">
         <button type="button" class="ghost danger" id="edit-delete">削除</button>
@@ -373,7 +420,7 @@
   const LOCAL_KEY = 'pyramid-dream:dreams';
 
   // ----- State -----
-  let dreams = []; // {id, title, desc, achieved, achievedDate, createdAt}
+  let dreams = []; // {id, title, desc, level, achieved, achievedDate, createdAt}
 
   // ----- DOM -----
   const $ = (id) => document.getElementById(id);
@@ -493,17 +540,7 @@
     const colRef = userCollection();
     const q = fs.query(colRef, fs.orderBy('createdAt', 'asc'));
     firestoreUnsub = fs.onSnapshot(q, (snap) => {
-      dreams = snap.docs.map(d => {
-        const data = d.data();
-        return {
-          id: d.id,
-          title: data.title || '',
-          desc: data.desc || '',
-          achieved: !!data.achieved,
-          achievedDate: data.achievedDate || '',
-          createdAt: typeof data.createdAt === 'number' ? data.createdAt : 0,
-        };
-      });
+      dreams = snap.docs.map(d => normalizeDream({ id: d.id, ...d.data() }));
       render();
     }, (err) => {
       console.error(err);
@@ -522,10 +559,24 @@
     return firestoreLib.collection(firestore, 'pyramid-dreams', uid, 'dreams');
   }
 
+  function normalizeDream(raw) {
+    return {
+      id: raw.id,
+      title: raw.title || '',
+      desc: raw.desc || '',
+      level: Number.isFinite(Number(raw.level)) ? Math.max(0, Math.floor(Number(raw.level))) : 0,
+      achieved: !!raw.achieved,
+      achievedDate: raw.achievedDate || '',
+      createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : 0,
+    };
+  }
+
   // ----- Local storage fallback -----
   function loadDreamsLocal() {
-    try { dreams = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }
-    catch { dreams = []; }
+    try {
+      const arr = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]');
+      dreams = arr.map(normalizeDream);
+    } catch { dreams = []; }
   }
   function saveDreamsLocal() {
     localStorage.setItem(LOCAL_KEY, JSON.stringify(dreams));
@@ -538,6 +589,7 @@
     const item = {
       title: d.title,
       desc: d.desc || '',
+      level: Math.max(0, Math.floor(Number(d.level) || 0)),
       achieved: !!d.achieved,
       achievedDate: d.achievedDate || '',
       createdAt: Date.now(),
@@ -552,12 +604,14 @@
   }
 
   async function updateDream(id, patch) {
+    const cleaned = { ...patch };
+    if ('level' in cleaned) cleaned.level = Math.max(0, Math.floor(Number(cleaned.level) || 0));
     if (firestore) {
-      await firestoreLib.updateDoc(firestoreLib.doc(userCollection(), id), patch);
+      await firestoreLib.updateDoc(firestoreLib.doc(userCollection(), id), cleaned);
     } else {
       const i = dreams.findIndex(x => x.id === id);
       if (i >= 0) {
-        dreams[i] = { ...dreams[i], ...patch };
+        dreams[i] = normalizeDream({ ...dreams[i], ...cleaned });
         saveDreamsLocal();
         render();
       }
@@ -574,107 +628,101 @@
     }
   }
 
-  // ----- Pyramid layout -----
-  // 実現済み = 下の段（土台）。古いものほど下。
-  // 未実現 = 上の段。新しいものほど上。
-  function sortedForPyramid() {
-    const achieved = dreams.filter(x => x.achieved).slice().sort((a,b) => {
-      const ka = a.achievedDate || '';
-      const kb = b.achievedDate || '';
-      if (ka && kb) return ka.localeCompare(kb);
-      if (ka) return -1;
-      if (kb) return 1;
-      return (a.createdAt||0) - (b.createdAt||0);
-    });
-    const pending = dreams.filter(x => !x.achieved).slice().sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
-    // 下から順 = achieved(古→新), pending(古→新)
-    return [...achieved, ...pending];
-  }
-
-  function colorForLevel(level, total) {
-    // 下から上へ: 暖色 → 黄金 → 朱色
+  // ----- Rendering -----
+  function colorForLevel(level, totalLevels) {
     const palette = [
-      ['#3a4a8a', '#283566'], // 深い青(基底)
+      ['#3a4a8a', '#283566'],
       ['#2c6e9b', '#1d5378'],
-      ['#06d6a0', '#04a37b'], // ターコイズ
-      ['#ffd166', '#e6b34d'], // 黄金
-      ['#f78c6b', '#e06b4d'], // 桃
-      ['#ef476f', '#c63657'], // 朱
+      ['#06d6a0', '#04a37b'],
+      ['#ffd166', '#e6b34d'],
+      ['#f78c6b', '#e06b4d'],
+      ['#ef476f', '#c63657'],
     ];
-    const idx = Math.min(palette.length - 1, Math.floor((level / Math.max(1, total - 1)) * (palette.length - 1)));
+    if (totalLevels <= 1) return palette[0];
+    const t = level / (totalLevels - 1);
+    const idx = Math.min(palette.length - 1, Math.round(t * (palette.length - 1)));
     return palette[idx];
   }
 
   function render() {
-    // Pyramid
-    const ordered = sortedForPyramid();
     pyramidWrap.innerHTML = '';
-    if (ordered.length === 0) {
+
+    if (dreams.length === 0) {
       pyramidWrap.appendChild(pyramidEmpty);
     } else {
-      // tip on top
+      // Group by level
+      const byLevel = new Map();
+      let maxLevel = 0;
+      for (const d of dreams) {
+        const lv = d.level || 0;
+        if (!byLevel.has(lv)) byLevel.set(lv, []);
+        byLevel.get(lv).push(d);
+        if (lv > maxLevel) maxLevel = lv;
+      }
+      const numLevels = maxLevel + 1;
+
+      // Tip on top
       const tip = document.createElement('div');
       tip.className = 'pyramid-tip';
       pyramidWrap.appendChild(tip);
 
-      const total = ordered.length;
-      // top is last (highest level)
-      for (let i = total - 1; i >= 0; i--) {
-        const d = ordered[i];
-        const level = i; // 0 = bottom
-        const widthRatio = (level + 1) / total; // top narrowest, bottom widest? we want bottom widest.
-        // Actually: bottom level (i=0) should be widest (ratio 1), top (i=total-1) narrowest.
-        const w = (total - level) / total; // bottom widest
-        // Use clip-path: at row k from top (k=0 top), width = (k+1)/total
-        // here we iterate from top: rowFromTop = total-1 - i
-        const rowFromTop = total - 1 - i;
-        const widthFraction = (rowFromTop + 1) / total; // top row narrowest
-        const inset = (1 - widthFraction) / 2; // 0..0.5
-        // For trapezoid clip-path: top side = current width, bottom side = next width below
-        const widthFractionBelow = Math.min(1, (rowFromTop + 2) / total);
-        const insetBelow = (1 - widthFractionBelow) / 2;
-        const lp = (inset * 100).toFixed(2) + '%';
-        const rp = ((1 - inset) * 100).toFixed(2) + '%';
-        const lpB = (insetBelow * 100).toFixed(2) + '%';
-        const rpB = ((1 - insetBelow) * 100).toFixed(2) + '%';
+      // Render rows from top (maxLevel) to bottom (0)
+      for (let lv = maxLevel; lv >= 0; lv--) {
+        const items = (byLevel.get(lv) || [])
+          .slice()
+          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
-        const layer = document.createElement('div');
-        layer.className = 'layer' + (d.achieved ? ' achieved' : ' unachieved');
-        layer.dataset.id = d.id;
+        const row = document.createElement('div');
+        row.className = 'pyramid-row';
+        const widthFraction = (numLevels - lv) / numLevels;
+        row.style.width = (widthFraction * 100).toFixed(2) + '%';
 
-        const [c1, c2] = colorForLevel(level, total);
-        layer.style.setProperty('--c1', c1);
-        layer.style.setProperty('--c2', c2);
+        const tag = document.createElement('span');
+        tag.className = 'level-tag';
+        tag.textContent = `Lv ${lv}`;
+        row.appendChild(tag);
 
-        const face = document.createElement('div');
-        face.className = 'face';
-        // clip-path: top-left = lp 0, top-right = rp 0, bottom-right = rpB 100%, bottom-left = lpB 100%
-        face.style.clipPath = `polygon(${lp} 0, ${rp} 0, ${rpB} 100%, ${lpB} 100%)`;
-        layer.appendChild(face);
+        if (items.length === 0) {
+          const ph = document.createElement('div');
+          ph.className = 'row-placeholder';
+          ph.textContent = `階層 ${lv}（夢を追加してこの段を埋めましょう）`;
+          row.appendChild(ph);
+        } else {
+          for (const d of items) {
+            const brick = document.createElement('div');
+            brick.className = 'brick' + (d.achieved ? ' achieved' : ' unachieved');
+            brick.dataset.id = d.id;
 
-        const label = document.createElement('div');
-        label.className = 'label';
-        label.textContent = d.title;
-        layer.appendChild(label);
+            const [c1, c2] = colorForLevel(lv, numLevels);
+            brick.style.setProperty('--c1', c1);
+            brick.style.setProperty('--c2', c2);
 
-        const check = document.createElement('div');
-        check.className = 'check';
-        check.textContent = d.achieved ? '✓' : '…';
-        layer.appendChild(check);
+            const label = document.createElement('div');
+            label.className = 'label';
+            label.textContent = d.title;
+            brick.appendChild(label);
 
-        layer.title = (d.achieved ? '[実現] ' : '[未実現] ') + d.title + (d.desc ? '\n' + d.desc : '');
-        layer.addEventListener('click', () => openEdit(d.id));
+            const check = document.createElement('div');
+            check.className = 'check';
+            check.textContent = d.achieved ? '✓' : '…';
+            brick.appendChild(check);
 
-        pyramidWrap.appendChild(layer);
+            brick.title = `[Lv ${lv}] ${d.achieved ? '実現' : '未実現'}: ${d.title}` + (d.desc ? '\n' + d.desc : '');
+            brick.addEventListener('click', () => openEdit(d.id));
+
+            row.appendChild(brick);
+          }
+        }
+
+        pyramidWrap.appendChild(row);
       }
     }
 
-    // List
+    // Sidebar list — sort by level desc (top first), then createdAt
     dreamList.innerHTML = '';
-    const sortedList = dreams.slice().sort((a,b) => {
-      // Achieved first (foundation), then by createdAt
-      if (a.achieved !== b.achieved) return a.achieved ? -1 : 1;
-      return (a.createdAt||0) - (b.createdAt||0);
+    const sortedList = dreams.slice().sort((a, b) => {
+      if (a.level !== b.level) return b.level - a.level;
+      return (a.createdAt || 0) - (b.createdAt || 0);
     });
     if (sortedList.length === 0) {
       dreamList.innerHTML = '<div style="color:var(--muted);font-size:13px;">まだ夢がありません。</div>';
@@ -682,7 +730,6 @@
       for (const d of sortedList) {
         const item = document.createElement('div');
         item.className = 'dream-item';
-        const [c1] = colorForLevel(0, 1);
         const swatch = document.createElement('div');
         swatch.className = 'swatch';
         swatch.style.background = d.achieved ? 'var(--good)' : 'rgba(255,255,255,0.2)';
@@ -693,16 +740,21 @@
         const title = document.createElement('div');
         title.className = 'title';
         title.textContent = d.title;
-        const badge = document.createElement('span');
-        badge.className = 'badge' + (d.achieved ? '' : ' pending');
-        badge.textContent = d.achieved ? '実現' : '挑戦中';
-        title.appendChild(badge);
+        const lvBadge = document.createElement('span');
+        lvBadge.className = 'badge level';
+        lvBadge.textContent = `Lv ${d.level}`;
+        title.appendChild(lvBadge);
+        const stBadge = document.createElement('span');
+        stBadge.className = 'badge' + (d.achieved ? '' : ' pending');
+        stBadge.textContent = d.achieved ? '実現' : '挑戦中';
+        title.appendChild(stBadge);
         info.appendChild(title);
+
         const meta = document.createElement('div');
         meta.className = 'meta';
         meta.textContent = d.achieved
           ? (d.achievedDate ? '達成: ' + d.achievedDate : '達成済み')
-          : '土台にするには「実現済み」に変更';
+          : (d.desc ? d.desc.slice(0, 40) + (d.desc.length > 40 ? '…' : '') : '挑戦中の夢');
         info.appendChild(meta);
         item.appendChild(info);
 
@@ -715,7 +767,7 @@
           e.stopPropagation();
           const patch = { achieved: !d.achieved };
           if (!d.achieved && !d.achievedDate) {
-            patch.achievedDate = new Date().toISOString().slice(0,10);
+            patch.achievedDate = new Date().toISOString().slice(0, 10);
           }
           try {
             await updateDream(d.id, patch);
@@ -744,6 +796,7 @@
     const data = {
       title,
       desc: $('dream-desc').value.trim(),
+      level: parseInt($('dream-level').value, 10) || 0,
       achieved: $('dream-achieved').value === 'true',
       achievedDate: $('dream-date').value,
     };
@@ -751,6 +804,8 @@
       await addDream(data);
       showStatus('夢を追加しました', 'ok');
       e.target.reset();
+      $('dream-level').value = '0';
+      $('dream-achieved').value = 'false';
     } catch (err) { showStatus('追加失敗: ' + err.message, 'error'); }
   });
 
@@ -761,6 +816,7 @@
     $('edit-id').value = d.id;
     $('edit-title').value = d.title;
     $('edit-desc').value = d.desc || '';
+    $('edit-level').value = String(d.level || 0);
     $('edit-achieved').value = d.achieved ? 'true' : 'false';
     $('edit-date').value = d.achievedDate || '';
     $('edit-modal').classList.add('show');
@@ -776,6 +832,7 @@
     const patch = {
       title: $('edit-title').value.trim(),
       desc: $('edit-desc').value.trim(),
+      level: parseInt($('edit-level').value, 10) || 0,
       achieved: $('edit-achieved').value === 'true',
       achievedDate: $('edit-date').value,
     };
