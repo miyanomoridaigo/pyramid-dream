@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pyramid Dream — 夢のピラミッド</title>
+<style>
+  :root {
+    --bg: #0f1226;
+    --bg-2: #1a1d3a;
+    --fg: #f5f5fa;
+    --muted: #a8accf;
+    --accent: #ffd166;
+    --accent-2: #ef476f;
+    --good: #06d6a0;
+    --line: rgba(255,255,255,0.12);
+    --card: rgba(255,255,255,0.06);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+    background: radial-gradient(1200px 800px at 70% -10%, #2a2266 0%, transparent 60%),
+                radial-gradient(900px 600px at -10% 110%, #1c3b5a 0%, transparent 55%),
+                var(--bg);
+    color: var(--fg);
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 24px; border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(15,18,38,0.6);
+  }
+  header h1 {
+    margin: 0; font-size: 20px; letter-spacing: 0.04em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  header h1 .icon { font-size: 22px; }
+  header .right { display: flex; gap: 8px; }
+  button, .btn {
+    background: var(--card); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 14px; font-size: 14px; cursor: pointer;
+    transition: transform 0.06s ease, background 0.15s ease;
+  }
+  button:hover { background: rgba(255,255,255,0.12); }
+  button:active { transform: scale(0.98); }
+  button.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #1a1d3a; border: none; font-weight: 600;
+  }
+  button.primary:hover { filter: brightness(1.05); }
+  button.ghost { background: transparent; }
+  button.danger { color: #ffb4c2; border-color: rgba(239,71,111,0.4); }
+
+  main {
+    max-width: 1200px; margin: 0 auto; padding: 24px;
+    display: grid; grid-template-columns: 1fr 360px; gap: 24px;
+  }
+  @media (max-width: 880px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 16px; padding: 20px;
+  }
+  .card h2 {
+    margin: 0 0 12px; font-size: 16px; color: var(--muted); font-weight: 500;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+
+  /* Pyramid */
+  #pyramid-wrap {
+    min-height: 420px;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    gap: 0; padding: 16px 0 8px;
+    position: relative;
+  }
+  .pyramid-empty {
+    color: var(--muted); text-align: center; padding: 60px 12px;
+    font-size: 14px; line-height: 1.7;
+  }
+  .layer {
+    width: 100%;
+    height: 56px;
+    margin-top: -1px;
+    cursor: pointer;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    transition: filter 0.2s ease, transform 0.15s ease;
+  }
+  .layer:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .layer .face {
+    position: absolute; inset: 0;
+    clip-path: polygon(var(--lp) 0, var(--rp) 0, 100% 100%, 0 100%);
+    background: linear-gradient(180deg, var(--c1), var(--c2));
+    border-top: 1px solid rgba(255,255,255,0.15);
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.15);
+  }
+  .layer .label {
+    position: relative; z-index: 1;
+    font-weight: 600; font-size: 14px; color: #1a1d3a;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+    padding: 0 12px; max-width: 70%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .layer.unachieved .label { color: var(--fg); text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+  .layer.unachieved .face {
+    background: repeating-linear-gradient(
+      45deg, rgba(255,255,255,0.06) 0 8px, rgba(255,255,255,0.12) 8px 16px
+    ), linear-gradient(180deg, var(--c1), var(--c2));
+    opacity: 0.85;
+  }
+  .layer .check {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    z-index: 1; font-size: 16px;
+  }
+  .pyramid-tip {
+    width: 0; height: 0;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-bottom: 28px solid var(--accent);
+    margin-bottom: -1px;
+    filter: drop-shadow(0 -2px 8px rgba(255,209,102,0.5));
+  }
+
+  /* Dream form */
+  form .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  label { font-size: 12px; color: var(--muted); }
+  input[type="text"], input[type="date"], textarea, select, input[type="password"] {
+    background: rgba(0,0,0,0.25); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 9px 10px; font-size: 14px;
+    font-family: inherit;
+  }
+  textarea { min-height: 64px; resize: vertical; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+
+  /* Dream list */
+  .dream-list { display: flex; flex-direction: column; gap: 8px; }
+  .dream-item {
+    background: rgba(0,0,0,0.2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dream-item .swatch {
+    width: 10px; height: 28px; border-radius: 3px; flex-shrink: 0;
+  }
+  .dream-item .info { flex: 1; min-width: 0; }
+  .dream-item .title { font-size: 14px; font-weight: 600; }
+  .dream-item .meta { font-size: 11px; color: var(--muted); }
+  .dream-item .actions { display: flex; gap: 4px; }
+  .dream-item button { padding: 5px 8px; font-size: 12px; }
+  .badge {
+    display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: var(--good); color: #073a2a; font-weight: 700; margin-left: 6px;
+  }
+  .badge.pending { background: rgba(255,255,255,0.15); color: var(--muted); }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100; padding: 16px;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 16px; padding: 22px;
+    max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto;
+  }
+  .modal h2 { margin: 0 0 14px; font-size: 18px; }
+  .modal p { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .modal code {
+    background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;
+    font-size: 12px;
+  }
+
+  /* Status */
+  #status {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 24px; padding: 8px 16px; font-size: 13px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    opacity: 0; transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 200;
+  }
+  #status.show { opacity: 1; }
+  #status.error { color: #ffb4c2; }
+  #status.ok { color: var(--good); }
+
+  .footer-note {
+    text-align: center; color: var(--muted); font-size: 12px;
+    padding: 24px; opacity: 0.7;
+  }
+
+  details summary {
+    cursor: pointer; color: var(--muted); font-size: 12px;
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="icon">🔺</span> Pyramid Dream</h1>
+  <div class="right">
+    <span id="connection-status" style="font-size:12px;color:var(--muted);align-self:center;margin-right:8px;">未接続（ローカル保存）</span>
+    <button id="open-settings">⚙ 設定</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>夢のピラミッド</h2>
+    <div id="pyramid-wrap">
+      <div class="pyramid-empty" id="pyramid-empty">
+        まだ夢が登録されていません。<br>
+        右側のフォームから最初の夢を追加しましょう。
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:12px;text-align:center;margin:12px 0 0;">
+      実現した夢ほど下に積まれ、次の夢の土台になります。レイヤーをクリックすると編集できます。
+    </p>
+  </section>
+
+  <aside class="card">
+    <h2>新しい夢を追加</h2>
+    <form id="dream-form">
+      <div class="field">
+        <label for="dream-title">夢のタイトル</label>
+        <input type="text" id="dream-title" required maxlength="60" placeholder="例: 自分のサービスを公開する">
+      </div>
+      <div class="field">
+        <label for="dream-desc">詳細（任意）</label>
+        <textarea id="dream-desc" maxlength="300" placeholder="どんな夢か、なぜ叶えたいか…"></textarea>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="dream-achieved">状態</label>
+          <select id="dream-achieved">
+            <option value="false">未実現</option>
+            <option value="true">実現済み</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="dream-date">実現した日（任意）</label>
+          <input type="date" id="dream-date">
+        </div>
+      </div>
+      <button type="submit" class="primary" style="width:100%;">追加する</button>
+    </form>
+
+    <h2 style="margin-top: 22px;">夢の一覧</h2>
+    <div id="dream-list" class="dream-list"></div>
+  </aside>
+</main>
+
+<p class="footer-note">
+  実現した夢が次の夢の土台になる。<br>
+  あなたのピラミッドを、一段ずつ高く。
+</p>
+
+<!-- Settings Modal -->
+<div class="modal-bg" id="settings-modal">
+  <div class="modal">
+    <h2>⚙ Firebase 設定</h2>
+    <p>
+      Firebase Firestore で夢のデータを保存・同期します。<br>
+      <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--accent);">Firebase Console</a> でプロジェクトを作成し、
+      <code>プロジェクト設定 → 全般 → ウェブアプリ</code> から取得した設定値を貼り付けてください。
+    </p>
+    <details>
+      <summary>初回セットアップ手順を表示</summary>
+      <ol style="font-size:12px;color:var(--muted);line-height:1.7;padding-left:20px;">
+        <li>Firebase Console でプロジェクト作成</li>
+        <li>左メニュー「Firestore Database」→「データベースを作成」（テストモードでもOK）</li>
+        <li>プロジェクト設定 → ウェブアプリを追加 → 設定値をコピー</li>
+        <li>下のフォームに貼り付けて保存</li>
+        <li>Firestoreのセキュリティルールは利用形態に合わせて設定してください</li>
+      </ol>
+    </details>
+    <form id="settings-form">
+      <div class="field">
+        <label>API Key</label>
+        <input type="password" id="cfg-apiKey" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Auth Domain</label>
+        <input type="text" id="cfg-authDomain" placeholder="example.firebaseapp.com">
+      </div>
+      <div class="field">
+        <label>Project ID</label>
+        <input type="text" id="cfg-projectId" placeholder="example-12345">
+      </div>
+      <div class="field">
+        <label>Storage Bucket（任意）</label>
+        <input type="text" id="cfg-storageBucket">
+      </div>
+      <div class="field">
+        <label>Messaging Sender ID（任意）</label>
+        <input type="text" id="cfg-messagingSenderId">
+      </div>
+      <div class="field">
+        <label>App ID</label>
+        <input type="text" id="cfg-appId">
+      </div>
+      <div class="field">
+        <label>ユーザー識別子（コレクション分離用 / 任意）</label>
+        <input type="text" id="cfg-userId" placeholder="例: my-name">
+      </div>
+      <div class="actions">
+        <button type="button" class="ghost danger" id="settings-clear">設定をクリア</button>
+        <button type="button" class="ghost" id="settings-cancel">閉じる</button>
+        <button type="submit" class="primary">保存して接続</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Dream Modal -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal">
+    <h2>夢を編集</h2>
+    <form id="edit-form">
+      <input type="hidden" id="edit-id">
+      <div class="field">
+        <label>タイトル</label>
+        <input type="text" id="edit-title" required maxlength="60">
+      </div>
+      <div class="field">
+        <label>詳細</label>
+        <textarea id="edit-desc" maxlength="300"></textarea>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>状態</label>
+          <select id="edit-achieved">
+            <option value="false">未実現</option>
+            <option value="true">実現済み</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>実現した日</label>
+          <input type="date" id="edit-date">
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="ghost danger" id="edit-delete">削除</button>
+        <button type="button" class="ghost" id="edit-cancel">キャンセル</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="status"></div>
+
+<script type="module">
+  // ----- Firebase (loaded only when configured) -----
+  let firebaseApp = null;
+  let firestore = null;
+  let firestoreUnsub = null;
+  let firestoreLib = null;
+
+  const CFG_KEY = 'pyramid-dream:firebase-config';
+  const LOCAL_KEY = 'pyramid-dream:dreams';
+
+  // ----- State -----
+  let dreams = []; // {id, title, desc, achieved, achievedDate, createdAt}
+
+  // ----- DOM -----
+  const $ = (id) => document.getElementById(id);
+  const pyramidWrap = $('pyramid-wrap');
+  const pyramidEmpty = $('pyramid-empty');
+  const dreamList = $('dream-list');
+  const connectionStatus = $('connection-status');
+
+  // ----- Status toast -----
+  let statusTimer = null;
+  function showStatus(msg, kind = 'ok') {
+    const el = $('status');
+    el.textContent = msg;
+    el.className = 'show ' + kind;
+    if (statusTimer) clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => el.className = '', 2400);
+  }
+
+  // ----- Settings (Firebase config) -----
+  function loadConfig() {
+    try { return JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); } catch { return null; }
+  }
+  function saveConfig(cfg) { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
+  function clearConfig() { localStorage.removeItem(CFG_KEY); }
+
+  function fillSettingsForm() {
+    const cfg = loadConfig();
+    if (!cfg) return;
+    $('cfg-apiKey').value = cfg.apiKey || '';
+    $('cfg-authDomain').value = cfg.authDomain || '';
+    $('cfg-projectId').value = cfg.projectId || '';
+    $('cfg-storageBucket').value = cfg.storageBucket || '';
+    $('cfg-messagingSenderId').value = cfg.messagingSenderId || '';
+    $('cfg-appId').value = cfg.appId || '';
+    $('cfg-userId').value = cfg.userId || '';
+  }
+
+  function openSettings() {
+    fillSettingsForm();
+    $('settings-modal').classList.add('show');
+  }
+  function closeSettings() { $('settings-modal').classList.remove('show'); }
+
+  $('open-settings').addEventListener('click', openSettings);
+  $('settings-cancel').addEventListener('click', closeSettings);
+  $('settings-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'settings-modal') closeSettings();
+  });
+  $('settings-clear').addEventListener('click', async () => {
+    if (!confirm('Firebase設定を削除しますか？（夢のデータはローカル保存に切り替わります）')) return;
+    clearConfig();
+    await teardownFirebase();
+    closeSettings();
+    loadDreamsLocal();
+    render();
+    updateConnectionLabel();
+    showStatus('設定をクリアしました', 'ok');
+  });
+
+  $('settings-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const cfg = {
+      apiKey: $('cfg-apiKey').value.trim(),
+      authDomain: $('cfg-authDomain').value.trim(),
+      projectId: $('cfg-projectId').value.trim(),
+      storageBucket: $('cfg-storageBucket').value.trim(),
+      messagingSenderId: $('cfg-messagingSenderId').value.trim(),
+      appId: $('cfg-appId').value.trim(),
+      userId: $('cfg-userId').value.trim(),
+    };
+    if (!cfg.apiKey || !cfg.projectId || !cfg.appId) {
+      showStatus('API Key / Project ID / App ID は必須です', 'error');
+      return;
+    }
+    saveConfig(cfg);
+    showStatus('接続中…', 'ok');
+    try {
+      await initFirebase(cfg);
+      closeSettings();
+      showStatus('Firebase に接続しました', 'ok');
+    } catch (err) {
+      console.error(err);
+      showStatus('接続に失敗しました: ' + err.message, 'error');
+    }
+    updateConnectionLabel();
+  });
+
+  function updateConnectionLabel() {
+    const cfg = loadConfig();
+    if (firestore && cfg) {
+      connectionStatus.textContent = `Firebase接続中: ${cfg.projectId}${cfg.userId ? ' / ' + cfg.userId : ''}`;
+      connectionStatus.style.color = 'var(--good)';
+    } else {
+      connectionStatus.textContent = '未接続（ローカル保存）';
+      connectionStatus.style.color = 'var(--muted)';
+    }
+  }
+
+  // ----- Firebase init -----
+  async function initFirebase(cfg) {
+    await teardownFirebase();
+    const [{ initializeApp }, fs] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js'),
+    ]);
+    firestoreLib = fs;
+    firebaseApp = initializeApp({
+      apiKey: cfg.apiKey,
+      authDomain: cfg.authDomain,
+      projectId: cfg.projectId,
+      storageBucket: cfg.storageBucket,
+      messagingSenderId: cfg.messagingSenderId,
+      appId: cfg.appId,
+    }, 'pyramid-dream-' + Date.now());
+    firestore = fs.getFirestore(firebaseApp);
+
+    const colRef = userCollection();
+    const q = fs.query(colRef, fs.orderBy('createdAt', 'asc'));
+    firestoreUnsub = fs.onSnapshot(q, (snap) => {
+      dreams = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          title: data.title || '',
+          desc: data.desc || '',
+          achieved: !!data.achieved,
+          achievedDate: data.achievedDate || '',
+          createdAt: typeof data.createdAt === 'number' ? data.createdAt : 0,
+        };
+      });
+      render();
+    }, (err) => {
+      console.error(err);
+      showStatus('Firestore 読込エラー: ' + err.message, 'error');
+    });
+  }
+
+  async function teardownFirebase() {
+    if (firestoreUnsub) { try { firestoreUnsub(); } catch {} firestoreUnsub = null; }
+    firestore = null; firebaseApp = null; firestoreLib = null;
+  }
+
+  function userCollection() {
+    const cfg = loadConfig();
+    const uid = (cfg && cfg.userId) ? cfg.userId : 'default';
+    return firestoreLib.collection(firestore, 'pyramid-dreams', uid, 'dreams');
+  }
+
+  // ----- Local storage fallback -----
+  function loadDreamsLocal() {
+    try { dreams = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }
+    catch { dreams = []; }
+  }
+  function saveDreamsLocal() {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(dreams));
+  }
+
+  // ----- CRUD -----
+  function uid() { return 'd_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+
+  async function addDream(d) {
+    const item = {
+      title: d.title,
+      desc: d.desc || '',
+      achieved: !!d.achieved,
+      achievedDate: d.achievedDate || '',
+      createdAt: Date.now(),
+    };
+    if (firestore) {
+      await firestoreLib.addDoc(userCollection(), item);
+    } else {
+      dreams.push({ id: uid(), ...item });
+      saveDreamsLocal();
+      render();
+    }
+  }
+
+  async function updateDream(id, patch) {
+    if (firestore) {
+      await firestoreLib.updateDoc(firestoreLib.doc(userCollection(), id), patch);
+    } else {
+      const i = dreams.findIndex(x => x.id === id);
+      if (i >= 0) {
+        dreams[i] = { ...dreams[i], ...patch };
+        saveDreamsLocal();
+        render();
+      }
+    }
+  }
+
+  async function deleteDream(id) {
+    if (firestore) {
+      await firestoreLib.deleteDoc(firestoreLib.doc(userCollection(), id));
+    } else {
+      dreams = dreams.filter(x => x.id !== id);
+      saveDreamsLocal();
+      render();
+    }
+  }
+
+  // ----- Pyramid layout -----
+  // 実現済み = 下の段（土台）。古いものほど下。
+  // 未実現 = 上の段。新しいものほど上。
+  function sortedForPyramid() {
+    const achieved = dreams.filter(x => x.achieved).slice().sort((a,b) => {
+      const ka = a.achievedDate || '';
+      const kb = b.achievedDate || '';
+      if (ka && kb) return ka.localeCompare(kb);
+      if (ka) return -1;
+      if (kb) return 1;
+      return (a.createdAt||0) - (b.createdAt||0);
+    });
+    const pending = dreams.filter(x => !x.achieved).slice().sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+    // 下から順 = achieved(古→新), pending(古→新)
+    return [...achieved, ...pending];
+  }
+
+  function colorForLevel(level, total) {
+    // 下から上へ: 暖色 → 黄金 → 朱色
+    const palette = [
+      ['#3a4a8a', '#283566'], // 深い青(基底)
+      ['#2c6e9b', '#1d5378'],
+      ['#06d6a0', '#04a37b'], // ターコイズ
+      ['#ffd166', '#e6b34d'], // 黄金
+      ['#f78c6b', '#e06b4d'], // 桃
+      ['#ef476f', '#c63657'], // 朱
+    ];
+    const idx = Math.min(palette.length - 1, Math.floor((level / Math.max(1, total - 1)) * (palette.length - 1)));
+    return palette[idx];
+  }
+
+  function render() {
+    // Pyramid
+    const ordered = sortedForPyramid();
+    pyramidWrap.innerHTML = '';
+    if (ordered.length === 0) {
+      pyramidWrap.appendChild(pyramidEmpty);
+    } else {
+      // tip on top
+      const tip = document.createElement('div');
+      tip.className = 'pyramid-tip';
+      pyramidWrap.appendChild(tip);
+
+      const total = ordered.length;
+      // top is last (highest level)
+      for (let i = total - 1; i >= 0; i--) {
+        const d = ordered[i];
+        const level = i; // 0 = bottom
+        const widthRatio = (level + 1) / total; // top narrowest, bottom widest? we want bottom widest.
+        // Actually: bottom level (i=0) should be widest (ratio 1), top (i=total-1) narrowest.
+        const w = (total - level) / total; // bottom widest
+        // Use clip-path: at row k from top (k=0 top), width = (k+1)/total
+        // here we iterate from top: rowFromTop = total-1 - i
+        const rowFromTop = total - 1 - i;
+        const widthFraction = (rowFromTop + 1) / total; // top row narrowest
+        const inset = (1 - widthFraction) / 2; // 0..0.5
+        // For trapezoid clip-path: top side = current width, bottom side = next width below
+        const widthFractionBelow = Math.min(1, (rowFromTop + 2) / total);
+        const insetBelow = (1 - widthFractionBelow) / 2;
+        const lp = (inset * 100).toFixed(2) + '%';
+        const rp = ((1 - inset) * 100).toFixed(2) + '%';
+        const lpB = (insetBelow * 100).toFixed(2) + '%';
+        const rpB = ((1 - insetBelow) * 100).toFixed(2) + '%';
+
+        const layer = document.createElement('div');
+        layer.className = 'layer' + (d.achieved ? ' achieved' : ' unachieved');
+        layer.dataset.id = d.id;
+
+        const [c1, c2] = colorForLevel(level, total);
+        layer.style.setProperty('--c1', c1);
+        layer.style.setProperty('--c2', c2);
+
+        const face = document.createElement('div');
+        face.className = 'face';
+        // clip-path: top-left = lp 0, top-right = rp 0, bottom-right = rpB 100%, bottom-left = lpB 100%
+        face.style.clipPath = `polygon(${lp} 0, ${rp} 0, ${rpB} 100%, ${lpB} 100%)`;
+        layer.appendChild(face);
+
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = d.title;
+        layer.appendChild(label);
+
+        const check = document.createElement('div');
+        check.className = 'check';
+        check.textContent = d.achieved ? '✓' : '…';
+        layer.appendChild(check);
+
+        layer.title = (d.achieved ? '[実現] ' : '[未実現] ') + d.title + (d.desc ? '\n' + d.desc : '');
+        layer.addEventListener('click', () => openEdit(d.id));
+
+        pyramidWrap.appendChild(layer);
+      }
+    }
+
+    // List
+    dreamList.innerHTML = '';
+    const sortedList = dreams.slice().sort((a,b) => {
+      // Achieved first (foundation), then by createdAt
+      if (a.achieved !== b.achieved) return a.achieved ? -1 : 1;
+      return (a.createdAt||0) - (b.createdAt||0);
+    });
+    if (sortedList.length === 0) {
+      dreamList.innerHTML = '<div style="color:var(--muted);font-size:13px;">まだ夢がありません。</div>';
+    } else {
+      for (const d of sortedList) {
+        const item = document.createElement('div');
+        item.className = 'dream-item';
+        const [c1] = colorForLevel(0, 1);
+        const swatch = document.createElement('div');
+        swatch.className = 'swatch';
+        swatch.style.background = d.achieved ? 'var(--good)' : 'rgba(255,255,255,0.2)';
+        item.appendChild(swatch);
+
+        const info = document.createElement('div');
+        info.className = 'info';
+        const title = document.createElement('div');
+        title.className = 'title';
+        title.textContent = d.title;
+        const badge = document.createElement('span');
+        badge.className = 'badge' + (d.achieved ? '' : ' pending');
+        badge.textContent = d.achieved ? '実現' : '挑戦中';
+        title.appendChild(badge);
+        info.appendChild(title);
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = d.achieved
+          ? (d.achievedDate ? '達成: ' + d.achievedDate : '達成済み')
+          : '土台にするには「実現済み」に変更';
+        info.appendChild(meta);
+        item.appendChild(info);
+
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = d.achieved ? '↺' : '✓';
+        toggleBtn.title = d.achieved ? '未実現に戻す' : '実現済みにする';
+        toggleBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const patch = { achieved: !d.achieved };
+          if (!d.achieved && !d.achievedDate) {
+            patch.achievedDate = new Date().toISOString().slice(0,10);
+          }
+          try {
+            await updateDream(d.id, patch);
+            showStatus(patch.achieved ? '実現おめでとう！🎉' : 'ステータス更新', 'ok');
+          } catch (err) { showStatus('更新失敗: ' + err.message, 'error'); }
+        });
+        actions.appendChild(toggleBtn);
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '✎';
+        editBtn.title = '編集';
+        editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEdit(d.id); });
+        actions.appendChild(editBtn);
+        item.appendChild(actions);
+
+        dreamList.appendChild(item);
+      }
+    }
+  }
+
+  // ----- Add form -----
+  $('dream-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = $('dream-title').value.trim();
+    if (!title) return;
+    const data = {
+      title,
+      desc: $('dream-desc').value.trim(),
+      achieved: $('dream-achieved').value === 'true',
+      achievedDate: $('dream-date').value,
+    };
+    try {
+      await addDream(data);
+      showStatus('夢を追加しました', 'ok');
+      e.target.reset();
+    } catch (err) { showStatus('追加失敗: ' + err.message, 'error'); }
+  });
+
+  // ----- Edit modal -----
+  function openEdit(id) {
+    const d = dreams.find(x => x.id === id);
+    if (!d) return;
+    $('edit-id').value = d.id;
+    $('edit-title').value = d.title;
+    $('edit-desc').value = d.desc || '';
+    $('edit-achieved').value = d.achieved ? 'true' : 'false';
+    $('edit-date').value = d.achievedDate || '';
+    $('edit-modal').classList.add('show');
+  }
+  function closeEdit() { $('edit-modal').classList.remove('show'); }
+  $('edit-cancel').addEventListener('click', closeEdit);
+  $('edit-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'edit-modal') closeEdit();
+  });
+  $('edit-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = $('edit-id').value;
+    const patch = {
+      title: $('edit-title').value.trim(),
+      desc: $('edit-desc').value.trim(),
+      achieved: $('edit-achieved').value === 'true',
+      achievedDate: $('edit-date').value,
+    };
+    try {
+      await updateDream(id, patch);
+      closeEdit();
+      showStatus('保存しました', 'ok');
+    } catch (err) { showStatus('保存失敗: ' + err.message, 'error'); }
+  });
+  $('edit-delete').addEventListener('click', async () => {
+    const id = $('edit-id').value;
+    if (!confirm('この夢を削除しますか？')) return;
+    try {
+      await deleteDream(id);
+      closeEdit();
+      showStatus('削除しました', 'ok');
+    } catch (err) { showStatus('削除失敗: ' + err.message, 'error'); }
+  });
+
+  // ----- Boot -----
+  (async function boot() {
+    const cfg = loadConfig();
+    if (cfg && cfg.apiKey && cfg.projectId && cfg.appId) {
+      try {
+        await initFirebase(cfg);
+        showStatus('Firebase に接続しました', 'ok');
+      } catch (err) {
+        console.error(err);
+        showStatus('Firebase接続失敗、ローカル保存で起動: ' + err.message, 'error');
+        loadDreamsLocal();
+        render();
+      }
+    } else {
+      loadDreamsLocal();
+      render();
+    }
+    updateConnectionLabel();
+  })();
+</script>
+</body>
+</html>
