@@ -718,10 +718,10 @@
       }
     }
 
-    // Sidebar list — sort by level desc (top first), then createdAt
+    // Sidebar list — sort by level asc (foundation first), then createdAt
     dreamList.innerHTML = '';
     const sortedList = dreams.slice().sort((a, b) => {
-      if (a.level !== b.level) return b.level - a.level;
+      if (a.level !== b.level) return a.level - b.level;
       return (a.createdAt || 0) - (b.createdAt || 0);
     });
     if (sortedList.length === 0) {
