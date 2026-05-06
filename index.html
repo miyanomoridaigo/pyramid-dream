@@ -306,9 +306,15 @@
           </select>
         </div>
       </div>
-      <div class="field">
-        <label for="dream-date">実現した日（任意）</label>
-        <input type="date" id="dream-date">
+      <div class="row">
+        <div class="field">
+          <label for="dream-target-date">目標日（任意）</label>
+          <input type="date" id="dream-target-date">
+        </div>
+        <div class="field">
+          <label for="dream-date">実現した日（任意）</label>
+          <input type="date" id="dream-date">
+        </div>
       </div>
       <button type="submit" class="primary" style="width:100%;">追加する</button>
     </form>
@@ -407,9 +413,15 @@
           </select>
         </div>
       </div>
-      <div class="field">
-        <label>実現した日</label>
-        <input type="date" id="edit-date">
+      <div class="row">
+        <div class="field">
+          <label>目標日</label>
+          <input type="date" id="edit-target-date">
+        </div>
+        <div class="field">
+          <label>実現した日</label>
+          <input type="date" id="edit-date">
+        </div>
       </div>
       <div class="actions">
         <button type="button" class="ghost danger" id="edit-delete">削除</button>
@@ -580,6 +592,7 @@
       level: Number.isFinite(Number(raw.level)) ? Math.max(0, Math.floor(Number(raw.level))) : 0,
       achieved: !!raw.achieved,
       achievedDate: raw.achievedDate || '',
+      targetDate: raw.targetDate || '',
       createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : 0,
     };
   }
@@ -605,6 +618,7 @@
       level: Math.max(0, Math.floor(Number(d.level) || 0)),
       achieved: !!d.achieved,
       achievedDate: d.achievedDate || '',
+      targetDate: d.targetDate || '',
       createdAt: Date.now(),
     };
     if (firestore) {
@@ -642,6 +656,24 @@
   }
 
   // ----- Rendering -----
+  function daysUntil(isoDate) {
+    if (!isoDate) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(isoDate + 'T00:00:00');
+    if (Number.isNaN(target.getTime())) return null;
+    const diffMs = target.getTime() - today.getTime();
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
+  }
+
+  function targetLabel(isoDate) {
+    const d = daysUntil(isoDate);
+    if (d === null) return '';
+    if (d > 0) return `あと ${d}日`;
+    if (d === 0) return '今日が目標日';
+    return `${Math.abs(d)}日超過`;
+  }
+
   function colorForLevel(level, totalLevels) {
     const palette = [
       ['#3a4a8a', '#283566'],
@@ -720,7 +752,14 @@
             check.textContent = d.achieved ? '✓' : '…';
             brick.appendChild(check);
 
-            brick.title = `[Lv ${lv}] ${d.achieved ? '実現' : '未実現'}: ${d.title}` + (d.desc ? '\n' + d.desc : '');
+            const tooltipParts = [`[Lv ${lv}] ${d.achieved ? '実現' : '未実現'}: ${d.title}`];
+            if (d.targetDate) {
+              const rem = targetLabel(d.targetDate);
+              tooltipParts.push(`目標: ${d.targetDate}${rem && !d.achieved ? ' (' + rem + ')' : ''}`);
+            }
+            if (d.achieved && d.achievedDate) tooltipParts.push(`達成: ${d.achievedDate}`);
+            if (d.desc) tooltipParts.push(d.desc);
+            brick.title = tooltipParts.join('\n');
             brick.addEventListener('click', () => openEdit(d.id));
 
             row.appendChild(brick);
@@ -765,9 +804,22 @@
 
         const meta = document.createElement('div');
         meta.className = 'meta';
-        meta.textContent = d.achieved
-          ? (d.achievedDate ? '達成: ' + d.achievedDate : '達成済み')
-          : (d.desc ? d.desc.slice(0, 40) + (d.desc.length > 40 ? '…' : '') : '挑戦中の夢');
+        let metaText;
+        if (d.achieved) {
+          metaText = d.achievedDate ? '達成: ' + d.achievedDate : '達成済み';
+          if (d.targetDate) metaText += ` / 目標: ${d.targetDate}`;
+        } else if (d.targetDate) {
+          const remain = targetLabel(d.targetDate);
+          metaText = `目標: ${d.targetDate}` + (remain ? ` (${remain})` : '');
+        } else {
+          metaText = d.desc ? d.desc.slice(0, 40) + (d.desc.length > 40 ? '…' : '') : '挑戦中の夢';
+        }
+        meta.textContent = metaText;
+        if (!d.achieved && d.targetDate) {
+          const days = daysUntil(d.targetDate);
+          if (days !== null && days < 0) meta.style.color = '#ffb4c2';
+          else if (days !== null && days <= 7) meta.style.color = 'var(--accent)';
+        }
         info.appendChild(meta);
         item.appendChild(info);
 
@@ -812,6 +864,7 @@
       level: parseInt($('dream-level').value, 10) || 0,
       achieved: $('dream-achieved').value === 'true',
       achievedDate: $('dream-date').value,
+      targetDate: $('dream-target-date').value,
     };
     try {
       await addDream(data);
@@ -832,6 +885,7 @@
     $('edit-level').value = String(d.level || 0);
     $('edit-achieved').value = d.achieved ? 'true' : 'false';
     $('edit-date').value = d.achievedDate || '';
+    $('edit-target-date').value = d.targetDate || '';
     $('edit-modal').classList.add('show');
   }
   function closeEdit() { $('edit-modal').classList.remove('show'); }
@@ -848,6 +902,7 @@
       level: parseInt($('edit-level').value, 10) || 0,
       achieved: $('edit-achieved').value === 'true',
       achievedDate: $('edit-date').value,
+      targetDate: $('edit-target-date').value,
     };
     try {
       await updateDream(id, patch);
