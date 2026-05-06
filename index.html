@@ -57,9 +57,19 @@
   main {
     max-width: 1200px; margin: 0 auto; padding: 24px;
     display: grid; grid-template-columns: 1fr 360px; gap: 24px;
+    transition: grid-template-columns 0.2s ease;
   }
+  main.sidebar-collapsed {
+    max-width: 1600px;
+    grid-template-columns: 1fr;
+  }
+  main.sidebar-collapsed > aside { display: none; }
   @media (max-width: 880px) {
     main { grid-template-columns: 1fr; }
+  }
+  #toggle-sidebar {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; padding: 8px 0;
   }
 
   .card {
