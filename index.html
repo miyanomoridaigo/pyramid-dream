@@ -265,6 +265,78 @@
   .hint {
     font-size: 11px; color: var(--muted); margin-top: -4px; line-height: 1.4;
   }
+
+  /* Print summary (PDF export) */
+  .print-only { display: none; }
+  .print-summary .level-block { margin-bottom: 14px; }
+  .print-summary .level-block h3 {
+    margin: 0 0 6px; font-size: 13px; color: var(--accent);
+    border-bottom: 1px solid var(--line); padding-bottom: 4px;
+  }
+  .print-summary ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; }
+  .print-summary li.achieved { color: var(--good); }
+  .print-summary li .meta {
+    font-size: 11px; color: var(--muted); margin-left: 6px;
+  }
+
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    body {
+      background: #ffffff !important;
+      color: #1a1d3a !important;
+    }
+    header {
+      position: static !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #ddd !important;
+      backdrop-filter: none !important;
+      padding: 0 0 12px !important;
+    }
+    header h1 { color: #1a1d3a !important; }
+    header .right, #toggle-sidebar, #open-settings, #export-pdf,
+    #connection-status, #status, .modal-bg, .footer-note,
+    aside.card { display: none !important; }
+    main {
+      max-width: none !important;
+      padding: 12px 0 !important;
+      display: block !important;
+    }
+    .card {
+      background: #ffffff !important;
+      border: 1px solid #ddd !important;
+      box-shadow: none !important;
+      page-break-inside: avoid;
+    }
+    .card h2 { color: #555 !important; }
+    #pyramid-wrap { min-height: 0 !important; padding: 8px 0 !important; }
+    .pyramid-row .level-tag { color: #666 !important; }
+    .row-placeholder {
+      border-color: #bbb !important; color: #888 !important;
+    }
+    .brick {
+      box-shadow: none !important;
+      border: 1px solid rgba(0,0,0,0.18) !important;
+      border-top: 1px solid rgba(255,255,255,0.4) !important;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+    .brick .label {
+      color: #ffffff !important;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.55) !important;
+    }
+    .pyramid-tip {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+    .print-only { display: block !important; }
+    .print-summary {
+      margin-top: 18px; page-break-before: auto;
+    }
+    .print-summary h3 { color: #444 !important; border-color: #ddd !important; }
+    .print-summary li.achieved { color: #06825f !important; }
+    .print-summary li .meta { color: #888 !important; }
+    p[style*="color:var(--muted)"] { color: #666 !important; }
+  }
 </style>
 </head>
 <body>
@@ -273,6 +345,8 @@
   <h1><span class="icon">🔺</span> Pyramid Dream</h1>
   <div class="right">
     <span id="connection-status" style="font-size:12px;color:var(--muted);margin-right:8px;">未接続（ローカル保存）</span>
+    <button id="export-pdf" title="PDFとしてエクスポート">📄 PDF</button>
+    <button id="toggle-sidebar" title="サイドバーの開閉">◧</button>
     <button id="open-settings">⚙ 設定</button>
   </div>
 </header>
@@ -289,6 +363,7 @@
     <p style="color:var(--muted);font-size:12px;text-align:center;margin:12px 0 0;">
       <strong>階層 0</strong> が土台。同じ階層の夢は横並びで一段を成し、複数の土台がその上の階層を支えます。
     </p>
+    <div class="print-only print-summary" id="print-summary"></div>
   </section>
 
   <aside class="card">
@@ -928,6 +1003,76 @@
       closeEdit();
       showStatus('削除しました', 'ok');
     } catch (err) { showStatus('削除失敗: ' + err.message, 'error'); }
+  });
+
+  // ----- Sidebar toggle -----
+  const SIDEBAR_KEY = 'pyramid-dream:sidebar-collapsed';
+  const mainEl = document.querySelector('main');
+  function applySidebarState(collapsed) {
+    mainEl.classList.toggle('sidebar-collapsed', collapsed);
+    $('toggle-sidebar').textContent = collapsed ? '◨' : '◧';
+    $('toggle-sidebar').title = collapsed ? 'サイドバーを開く' : 'サイドバーを閉じる';
+  }
+  $('toggle-sidebar').addEventListener('click', () => {
+    const next = !mainEl.classList.contains('sidebar-collapsed');
+    applySidebarState(next);
+    localStorage.setItem(SIDEBAR_KEY, String(next));
+  });
+  applySidebarState(localStorage.getItem(SIDEBAR_KEY) === 'true');
+
+  // ----- PDF export (print) -----
+  function buildPrintSummary() {
+    const el = $('print-summary');
+    el.innerHTML = '';
+    if (dreams.length === 0) return;
+    const byLevel = new Map();
+    let maxLevel = 0;
+    for (const d of dreams) {
+      const lv = d.level || 0;
+      if (!byLevel.has(lv)) byLevel.set(lv, []);
+      byLevel.get(lv).push(d);
+      if (lv > maxLevel) maxLevel = lv;
+    }
+    const heading = document.createElement('h2');
+    heading.textContent = '夢の一覧';
+    heading.style.marginTop = '18px';
+    el.appendChild(heading);
+    for (let lv = maxLevel; lv >= 0; lv--) {
+      const items = (byLevel.get(lv) || []).slice().sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      if (items.length === 0) continue;
+      const block = document.createElement('div');
+      block.className = 'level-block';
+      const h = document.createElement('h3');
+      h.textContent = `Lv ${lv}`;
+      block.appendChild(h);
+      const ul = document.createElement('ul');
+      for (const d of items) {
+        const li = document.createElement('li');
+        if (d.achieved) li.className = 'achieved';
+        const main = document.createElement('span');
+        main.textContent = (d.achieved ? '✓ ' : '… ') + d.title;
+        li.appendChild(main);
+        const meta = document.createElement('span');
+        meta.className = 'meta';
+        const parts = [];
+        if (d.targetDate) {
+          const r = targetLabel(d.targetDate);
+          parts.push(`目標 ${d.targetDate}` + (r && !d.achieved ? ' (' + r + ')' : ''));
+        }
+        if (d.achieved && d.achievedDate) parts.push(`達成 ${d.achievedDate}`);
+        if (d.desc) parts.push(d.desc);
+        if (parts.length) meta.textContent = ' — ' + parts.join(' / ');
+        li.appendChild(meta);
+        ul.appendChild(li);
+      }
+      block.appendChild(ul);
+      el.appendChild(block);
+    }
+  }
+  $('export-pdf').addEventListener('click', () => {
+    buildPrintSummary();
+    showStatus('印刷ダイアログで「PDFに保存」を選んでください', 'ok');
+    setTimeout(() => window.print(), 150);
   });
 
   // ----- Boot -----
